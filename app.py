@@ -102,7 +102,10 @@ if uploaded_file is not None:
                 return f'color: {color}; font-weight: bold'
 
             styled_df = display_df.style.map(style_status, subset=['Status'])\
-                                        .format({'Max Bid': '${:,.2f}', 'Current Bid': '${:,.2f}'}, na_rep="N/A")
+                                        .format({
+                                            'Max Bid': '${:,.2f}',
+                                            'Current Bid': lambda x: f'${x:,.2f}' if isinstance(x, (int, float)) else (x if x else 'N/A')
+                                        })
             
             st.dataframe(styled_df, use_container_width=True, hide_index=True)
             
