@@ -11,8 +11,18 @@ st.title(" Auction Bid Tracker")
 def fetch_current_bid(url):
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled"]
+            )
+            context = browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/123.0.0.0 Safari/537.36"
+                )
+            )
+            page = context.new_page()
             page.goto(url, timeout=15000)
             
             # Wait up to 10 seconds for the element with id="fixedheading" to load
@@ -27,9 +37,8 @@ def fetch_current_bid(url):
                 # Return the match (remove commas if there are any, e.g., $1,200 -> 1200)
                 return float(matches[0].replace(',', ''))
             return 0.0
-    except Exception:
-        # If it times out or fails to find the element
-        return None
+    except Exception as e:
+        return str(e)
 
 # 3. Sidebar for File Upload
 st.sidebar.header("Upload your Data")
@@ -74,9 +83,10 @@ if uploaded_file is not None:
             
             # Determine Status
             def determine_status(row):
-                if pd.isna(row['Current Bid']):
-                    return "⚠️ Error Fetching"
-                elif row['Current Bid'] > row['Max Bid']:
+                val = row['Current Bid']
+                if isinstance(val, str) or pd.isna(val):
+                    return f"⚠️ Error: {val}" if isinstance(val, str) else "⚠️ Error Fetching"
+                elif val > row['Max Bid']:
                     return "🔴 Exceeded Max Bid"
                 else:
                     return "🟢 Within Budget"
